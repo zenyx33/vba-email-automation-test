@@ -1,2 +1,2 @@
 # vba-email-automation-test
-Otimização para disparo e envio de emails com salvamento automático da respostas para arquivo e preenchimento de logs para confirmação e/ou erro de envio.
+Código teste para otimização no envio de emails com salvamento automático da respostas em formato .msg,  para arquivo e preenchimento de logs para confirmação e/ou erro de envio.
