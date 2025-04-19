@@ -1,227 +1,141 @@
 Sub EnviarEmails()
-
     Dim OutlookApp As Object
-
     Dim EmailItem As Object
-
     Dim ws As Worksheet
-
     Dim i As Integer
-
     Dim pastaAnexos As String
-
     Dim arquivo As Object
-
     Dim FSO As Object
-
     Dim processo As String
-
     Dim idOpaj As String
-
     Dim idOutro As String
-
     Dim emailDestino As String
-
     Dim copiaOculta As String
-
     Dim tipoResposta As String
-
     Dim corpoEmail As String
-
     Dim assuntoEmail As String
-
     Dim remetente As String
-
     Dim caminhoSalvar As String
-
-    
+    Dim logWs As Worksheet                  ' >>> NOVO: aba de log
+    Dim ultimaLinhaLog As Long              ' >>> NOVO: controle da última linha usada
+    Dim encontrado As Boolean
+    Dim itemEnviado As Object
+    Dim nomeArquivo As String
 
     Set ws = ThisWorkbook.Sheets("Plan1")
-
+    Set logWs = ThisWorkbook.Sheets("LogEnvios") ' >>> NOVO: define a aba de log
     Set OutlookApp = CreateObject("Outlook.Application")
-
-    remetente = teste@123.com
-
-   
-
+    remetente = "teste@123.com"
+    
     For i = 2 To ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-
-
-        Set EmailItem = OutlookApp.CreateItem(0)
-
+    
         processo = ws.Cells(i, 1).Value
-
         idOpaj = ws.Cells(i, 2).Value
-
         idOutro = ws.Cells(i, 3).Value
-
         emailDestino = ws.Cells(i, 4).Value
-
         copiaOculta = ws.Cells(i, 5).Value
-
         pastaAnexos = ws.Cells(i, 6).Value
-
         tipoResposta = ws.Cells(i, 7).Value
-
         caminhoSalvar = ws.Cells(i, 8).Value
-
-        If tipoResposta = "FNDA" Then
-
-            assuntoEmail = "Resposta " - ID " & idExpe & " / " & idOutro & " E-MAIL RESPOSTA FINAL"
-
-        ElseIf tipoResposta = "DILA" Then
-
-            assuntoEmail = "Resposta " - ID " & idExpe & " / " & idOutro & " DILAÇÃO"
-
-        Else
-
-            assuntoEmail = "Resposta " - ID " & idExpe & " / " & idOutro
-
+        
+        ' >>> Validações obrigatórias
+        If Trim(processo) = "" Or Trim(idOpaj) = "" Or Trim(idOutro) = "" Or Trim(emailDestino) = "" Then
+            MsgBox "Erro na linha " & i & ": coluna A, B, C ou D não preenchida."
+            GoTo ProximaLinha
         End If
-
-               
-
-           
-
-        If tipoResposta = "NF1" Then
-
-            corpoEmail = "Prezados,<br><br>" & _
-
-                         "Salientamos" & _
-
-                         "OK.<br><br>" & _
-
-                         "Em atençãobr><br>" & _
-
-                         "Dúvidas <b> email@123.com </b>.<br><br>" & _
-
-                         "Atenciosamente,<br><br>" & _
-
-                         " Equipe 1<br>" & _
-
-                         "Equipe 1<br>" & _
-
-                         "Equipe 1<br>" & _
-
-                         "Rua X<br>" & _
-
-                         "Telefone:(11) 111111<br>" & _
-
-                         email@123.com<br>
-
-        ElseIf tipoResposta = "NF2" Then
-
-            corpoEmail = "Prezados(as),<br><br>" & _
-
-                         "Salientamos" & _
-
-                         "OK.<br><br>" & _
-
-                         "Em atençãobr><br>" & _
-
-                         "Dúvidas <b> email@123.com </b>.<br><br>" & _
-
-                         "Atenciosamente,<br><br>" & _
-
-                         " Equipe 1<br>" & _
-
-                         "Equipe 1<br>" & _
-
-                         "Equipe 1<br>" & _
-
-                         "Rua X<br>" & _
-
-                         "Telefone:(11) 111111<br>" & _
-
-                         email@123.com<br>
-
-        Else
-
-            corpoEmail = "Prezados,<br><br>" & _
-
-                         "Segue a resposta referente solicitada <b>" & processo & "</b> com IDs <b>" & idOpaj & "</b> e <b>" & idOutro & "</b>.<br><br>" & _
-
-                         "Atenciosamente."
-
+        
+        Set FSO = CreateObject("Scripting.FileSystemObject")
+        If Not FSO.FolderExists(pastaAnexos) Then
+            MsgBox "A pasta de anexos da linha " & i & " não foi encontrada."
+            GoTo ProximaLinha
         End If
-
-
-        With EmailItem
-
-            .To = emailDestino
-
-            .BCC = copiaOculta
-
-            .SentOnBehalfOfName = remetente
-
-            .Subject = assuntoEmail
-
-            .HTMLBody = corpoEmail
-
-                     
-
-                        Set FSO = CreateObject("Scripting.FileSystemObject")
-
-            If FSO.FolderExists(pastaAnexos) Then
-
-                For Each arquivo In FSO.GetFolder(pastaAnexos).Files
-
-                    .Attachments.Add arquivo.Path
-
-                Next
-
+        
+        Dim arquivosNaPasta As Integer: arquivosNaPasta = 0
+        For Each arquivo In FSO.GetFolder(pastaAnexos).Files
+            If LCase(Right(arquivo.Name, 4)) <> ".ini" Then
+                arquivosNaPasta = arquivosNaPasta + 1
             End If
-
-            .Send
-
-        End With
-
-        Application.Wait (Now + TimeValue("0:00:10"))
-
-              
-
-        Set pastaEnvio = OutlookApp.GetNamespace("MAPI").GetDefaultFolder(5) ' 5 = Itens Enviados
-
-        encontrado = False
-
- 
-
-        For Each itemEnviado In pastaEnvio.Items
-
-            If itemEnviado.Class = 43 Then ' 43 = MailItem
-
-                If itemEnviado.Subject = assuntoEmail Then
-
-                    nomeArquivo = idOpaj & "_" & idOutro & ".msg"
-
-                    itemEnviado.SaveAs caminhoSalvar & "\" & nomeArquivo, 3
-
-                    encontrado = True
-
-                    Exit For
-
-                End If
-
-            End If
-
         Next
-
- 
-
-        If Not encontrado Then
-
-            MsgBox "E-mail com assunto '" & assuntoEmail & "' não foi salvo, pois não foi localizado na pasta Itens Enviados.", vbExclamation
-
+        If arquivosNaPasta = 0 Then
+            MsgBox "A pasta de anexos da linha " & i & " está vazia (ou apenas com arquivos .ini)."
+            GoTo ProximaLinha
         End If
-
- 
-
+        
+        
+        If tipoResposta = "NF" Then
+            assuntoEmail = "Resposta - ID " & idOpaj & " / " & idOutro & " RESPOSTA FORMATO 01"
+        ElseIf tipoResposta = "NFE" Then
+            assuntoEmail = "Resposta - ID " & idOpaj & " / " & idOutro & " RESPOSTA FORMATO 02"
+        Else
+            assuntoEmail = "Resposta - ID " & idOpaj & " / " & idOutro
+        End If
+        
+        corpoEmail = "Prezados,<br><br>" & _
+                     "Segue a resposta referente solicitada <b>" & processo & "</b> com IDs <b>" & idOpaj & "</b> e <b>" & idOutro & "</b>.<br><br>" & _
+                     "Atenciosamente,<br><br>" & _
+                     "Equipe 1<br>" & _
+                     "Rua X<br>" & _
+                     "Telefone: (11) 111111<br>" & _
+                     "email@123.com<br>"
+        
+        Set EmailItem = OutlookApp.CreateItem(0)
+        
+        With EmailItem
+            .To = emailDestino
+            .BCC = copiaOculta
+            .SentOnBehalfOfName = remetente
+            .Subject = assuntoEmail
+            .HTMLBody = corpoEmail
+            
+            For Each arquivo In FSO.GetFolder(pastaAnexos).Files
+                If LCase(Right(arquivo.Name, 4)) <> ".ini" Then
+                    .Attachments.Add arquivo.Path
+                End If
+            Next
+            
+            On Error Resume Next
+            .Send
+            If Err.Number = 0 Then
+                
+                ultimaLinhaLog = logWs.Cells(logWs.Rows.Count, 1).End(xlUp).Row + 1
+                logWs.Cells(ultimaLinhaLog, 1).Value = Now
+                logWs.Cells(ultimaLinhaLog, 2).Value = emailDestino
+                logWs.Cells(ultimaLinhaLog, 3).Value = assuntoEmail
+                logWs.Cells(ultimaLinhaLog, 4).Value = "SUCESSO"
+            Else
+                
+                ultimaLinhaLog = logWs.Cells(logWs.Rows.Count, 1).End(xlUp).Row + 1
+                logWs.Cells(ultimaLinhaLog, 1).Value = Now
+                logWs.Cells(ultimaLinhaLog, 2).Value = emailDestino
+                logWs.Cells(ultimaLinhaLog, 3).Value = assuntoEmail
+                logWs.Cells(ultimaLinhaLog, 4).Value = "FALHA: " & Err.Description
+            End If
+            On Error GoTo 0
+        End With
+        
+        Application.Wait (Now + TimeValue("0:00:02"))
+        
+        Set pastaEnvio = OutlookApp.GetNamespace("MAPI").GetDefaultFolder(5) ' 5 = Itens Enviados
+        encontrado = False
+        
+        For Each itemEnviado In pastaEnvio.Items
+            If itemEnviado.Class = 43 Then
+                If itemEnviado.Subject = assuntoEmail Then
+                    nomeArquivo = idOpaj & "_" & idOutro & ".msg"
+                    itemEnviado.SaveAs caminhoSalvar & "\" & nomeArquivo, 3
+                    encontrado = True
+                    Exit For
+                End If
+            End If
+        Next
+        
+        If Not encontrado Then
+            MsgBox "E-mail com assunto '" & assuntoEmail & "' não foi salvo, pois não foi localizado na pasta Itens Enviados.", vbExclamation
+        End If
+        
+ProximaLinha:
+        
     Next i
 
- 
-
-    MsgBox "Todos os e-mails foram enviados e salvos com sucesso!", vbInformation, "Sucesso"
-
- 
-
+    MsgBox "Processo concluído.", vbInformation, "Finalizado"
 End Sub
